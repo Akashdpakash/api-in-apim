@@ -40,7 +40,7 @@ variable "jwt_secret" {
 variable "api_name" {
   description = "The name of the API to be created in the APIM instance."
   type        = string
-  default     = "hello-api"
+  default     = "hello-apim"
 }
 
 variable "api_display_name" {
