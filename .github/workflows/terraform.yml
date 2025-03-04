@@ -5,9 +5,11 @@ on:
     branches:
       - main
 
+# Grant necessary permissions
 permissions:
   id-token: write
   contents: read
+  issues: write  # Add this line to allow creating issues
 
 env:
   ARM_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
@@ -46,7 +48,8 @@ jobs:
         uses: trstringer/manual-approval@v1
         with:
           secret: ${{ github.token }}
-          approvers: your-github-username
+          approvers: Akashdpakash  # Replace with your GitHub username
+          exclude-workflow-initiator-as-approver: false
 
       - name: Terraform Apply
         working-directory: ./terraform
