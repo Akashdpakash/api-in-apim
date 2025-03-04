@@ -46,6 +46,12 @@ jobs:
           echo "::endgroup::"
         continue-on-error: false
 
+      - name: Upload Terraform Plan
+        uses: actions/upload-artifact@v3
+        with:
+          name: tfplan
+          path: ./terraform/tfplan
+
   apply:
     runs-on: ubuntu-latest
     needs: terraform
@@ -53,6 +59,12 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
+
+      - name: Download Terraform Plan
+        uses: actions/download-artifact@v3
+        with:
+          name: tfplan
+          path: ./terraform
 
       - name: Set up Terraform
         uses: hashicorp/setup-terraform@v2
