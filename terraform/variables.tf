@@ -1,30 +1,35 @@
 variable "resource_group_name" {
-  description = "Name of the resource group"
+  description = "The name of the resource group."
   type        = string
+  default     = "my-resource-group"
 }
 
 variable "location" {
-  description = "Azure region"
+  description = "The Azure region."
   type        = string
+  default     = "canadacentral"
 }
 
 variable "apim_name" {
-  description = "Name of the API Management service"
+  description = "The name of the API Management service."
   type        = string
+  default     = "my-apim-instance"
 }
 
 variable "publisher_name" {
-  description = "Name of the publisher"
+  description = "The name of the publisher."
   type        = string
+  default     = "Aspiringakashdp"
 }
 
 variable "publisher_email" {
-  description = "Email of the publisher"
+  description = "The email of the publisher."
   type        = string
+  default     = "Aspiringakashdp@gmail.com"
 }
 
 variable "jwt_secret" {
-  description = "JWT secret for token validation"
+  description = "The JWT secret for token validation."
   type        = string
   sensitive   = true
 }
