@@ -13,7 +13,7 @@ variable "location" {
 variable "apim_name" {
   description = "The name of the API Management service."
   type        = string
-  default     = "test-apim"
+  default     = "hello-apim"
 }
 
 variable "publisher_name" {
