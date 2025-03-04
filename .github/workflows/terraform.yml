@@ -8,7 +8,7 @@ on:
 permissions:
   id-token: write
   contents: read
-  issues: write  # Required for manual approval
+  issues: write  # Required for manual review and approval
 
 env:
   ARM_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
