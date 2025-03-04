@@ -1,7 +1,7 @@
 variable "resource_group_name" {
   description = "The name of the resource group."
   type        = string
-  default     = "my-resource-group"
+  default     = "test-resource-group"
 }
 
 variable "location" {
@@ -13,7 +13,7 @@ variable "location" {
 variable "apim_name" {
   description = "The name of the API Management service."
   type        = string
-  default     = "my-apim-instance"
+  default     = "test-apim"
 }
 
 variable "publisher_name" {
