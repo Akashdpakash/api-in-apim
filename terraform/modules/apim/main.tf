@@ -5,11 +5,12 @@ resource "azurerm_api_management" "apim" {
   publisher_name      = var.publisher_name
   publisher_email     = var.publisher_email
 
+  # Set the SKU to Developer
   sku_name = "Developer_1"
 }
 
 resource "azurerm_api_management_api" "hello_api" {
-  name                = "hello-apim"
+  name                = "hello-api"
   resource_group_name = var.resource_group_name
   api_management_name = azurerm_api_management.apim.name
   revision            = "1"
