@@ -8,6 +8,7 @@ on:
 permissions:
   id-token: write
   contents: read
+  issues: write  # Required for manual review and approval
 
 env:
   ARM_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
@@ -17,6 +18,7 @@ env:
 jobs:
   terraform:
     runs-on: ubuntu-latest
+    environment: production
 
     steps:
       - name: Checkout code
@@ -46,16 +48,12 @@ jobs:
           echo "::endgroup::"
         continue-on-error: false
 
-  apply:
-    runs-on: ubuntu-latest
-    needs: terraform
-    environment: production  # Add this line for manual approval
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v3
-
-      - name: Set up Terraform
-        uses: hashicorp/setup-terraform@v2
+      - name: Manual Approval
+        uses: trstringer/manual-approval@v1
+        with:
+          secret: ${{ github.token }}
+          approvers: Akashdpakash  # Replace with your GitHub username
+          exclude-workflow-initiator-as-approver: false
 
       - name: Terraform Apply
         working-directory: ./terraform
