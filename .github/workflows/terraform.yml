@@ -5,11 +5,10 @@ on:
     branches:
       - main
 
-# Grant necessary permissions
 permissions:
   id-token: write
   contents: read
-  issues: write  # Add this line to allow creating issues
+  issues: write  # Required for manual approval
 
 env:
   ARM_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
@@ -19,6 +18,7 @@ env:
 jobs:
   terraform:
     runs-on: ubuntu-latest
+    environment: production
 
     steps:
       - name: Checkout code
@@ -41,7 +41,11 @@ jobs:
 
       - name: Terraform Plan
         working-directory: ./terraform
-        run: terraform plan -out=tfplan
+        run: |
+          terraform plan -out=tfplan
+          echo "::group::Terraform Plan Output"
+          terraform show -no-color tfplan
+          echo "::endgroup::"
         continue-on-error: false
 
       - name: Manual Approval
