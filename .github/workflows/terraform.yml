@@ -10,12 +10,9 @@ permissions:
   contents: read
 
 env:
-  RESOURCE_GROUP_NAME: "my-resource-group"
-  LOCATION: "canadacentral"
-  APIM_NAME: "my-apim-instance"
-  PUBLISHER_NAME: "Aspiringakashdp"
-  PUBLISHER_EMAIL: "Aspiringakashdp@gmail.com"
-  JWT_SECRET: ${{ secrets.JWT_SECRET }}
+  ARM_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+  ARM_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+  ARM_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
 
 jobs:
   terraform:
@@ -31,9 +28,9 @@ jobs:
       - name: Azure Login (OIDC)
         uses: azure/login@v1
         with:
-          client-id: ${{ secrets.AZURE_CLIENT_ID }}
-          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
-          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+          client-id: ${{ env.ARM_CLIENT_ID }}
+          tenant-id: ${{ env.ARM_TENANT_ID }}
+          subscription-id: ${{ env.ARM_SUBSCRIPTION_ID }}
           audience: api://AzureADTokenExchange
 
       - name: Terraform Init
@@ -42,15 +39,7 @@ jobs:
 
       - name: Terraform Plan
         working-directory: ./terraform
-        run: |
-          terraform plan \
-            -var="resource_group_name=${{ env.RESOURCE_GROUP_NAME }}" \
-            -var="location=${{ env.LOCATION }}" \
-            -var="apim_name=${{ env.APIM_NAME }}" \
-            -var="publisher_name=${{ env.PUBLISHER_NAME }}" \
-            -var="publisher_email=${{ env.PUBLISHER_EMAIL }}" \
-            -var="jwt_secret=${{ env.JWT_SECRET }}" \
-            -out=tfplan
+        run: terraform plan -out=tfplan
         continue-on-error: false
 
       - name: Manual Approval

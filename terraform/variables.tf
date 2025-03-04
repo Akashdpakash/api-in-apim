@@ -32,4 +32,5 @@ variable "jwt_secret" {
   description = "The JWT secret for token validation."
   type        = string
   sensitive   = true
+  default     = "my-secure-jwt-secret-key-1234567890"
 }

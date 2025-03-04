@@ -8,6 +8,7 @@ resource "azurerm_resource_group" "rg" {
   location = var.location
 }
 
+# Create API Management instance
 module "apim" {
   source = "./modules/apim"
 
