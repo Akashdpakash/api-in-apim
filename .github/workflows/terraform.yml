@@ -1,4 +1,4 @@
-name: Terraform CI/CD for testint APIM
+name: Terraform CI/CD
 
 on:
   push:
@@ -34,9 +34,11 @@ jobs:
           audience: api://AzureADTokenExchange
 
       - name: Terraform Init
+        working-directory: ./terraform
         run: terraform init
 
       - name: Terraform Plan
+        working-directory: ./terraform
         run: terraform plan -out=tfplan
         continue-on-error: false
 
@@ -47,4 +49,5 @@ jobs:
           approvers: your-github-username
 
       - name: Terraform Apply
+        working-directory: ./terraform
         run: terraform apply tfplan
