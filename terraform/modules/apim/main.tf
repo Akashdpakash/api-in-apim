@@ -5,7 +5,6 @@ resource "azurerm_api_management" "apim" {
   publisher_name      = var.publisher_name
   publisher_email     = var.publisher_email
 
-  # Set the SKU to Developer
   sku_name = "Developer_1"
 }
 
@@ -26,12 +25,12 @@ resource "azurerm_api_management_api" "hello_api" {
 
 resource "azurerm_api_management_policy" "jwt_policy" {
   api_management_id = azurerm_api_management.apim.id
-  xml_content       = <<XML
+  xml_content       = replace(<<XML
 <policies>
   <inbound>
     <validate-jwt header-name="Authorization" failed-validation-httpcode="401" failed-validation-error-message="Unauthorized">
       <issuer-signing-keys>
-        <key>${var.jwt_secret}</key>
+        <key>JWT_SECRET_PLACEHOLDER</key>
       </issuer-signing-keys>
       <audiences>
         <audience>your-audience</audience>
@@ -53,6 +52,7 @@ resource "azurerm_api_management_policy" "jwt_policy" {
   </on-error>
 </policies>
 XML
+, "JWT_SECRET_PLACEHOLDER", var.jwt_secret)
 }
 
 output "apim_gateway_url" {
