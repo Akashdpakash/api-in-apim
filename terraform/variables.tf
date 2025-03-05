@@ -7,7 +7,7 @@ variable "location" {
 variable "resource_group_name" {
   description = "Name of the resource group"
   type        = string
-  default     = "api-rg"
+  default     = "api-resource-group"
 }
 
 variable "apim_name" {
@@ -19,7 +19,7 @@ variable "apim_name" {
 variable "publisher_name" {
   description = "APIM publisher name"
   type        = string
-  default     = "GMAIl"
+  default     = "Akash"
 }
 
 variable "publisher_email" {
