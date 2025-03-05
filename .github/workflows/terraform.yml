@@ -1,94 +1,126 @@
-name: Terraform CI/CD
+name: Deploy API Manager service and test the api
 
 on:
   push:
     branches:
       - main
-
-permissions:
-  id-token: write
-  contents: read
-
-env:
-  ARM_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
-  ARM_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
-  ARM_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
-  ARM_ACCESS_KEY: ${{ secrets.AZURE_STORAGE_ACCESS_KEY }}
-  TF_VAR_jwt_secret: ${{ secrets.JWT_SECRET }}
+  workflow_dispatch:
 
 jobs:
-  terraform:
+  create-sp:
     runs-on: ubuntu-latest
-
+    outputs:
+      sp_appid: ${{ steps.create-sp.outputs.sp_appid }}
+      sp_password: ${{ steps.create-sp.outputs.sp_password }}
+      sp_tenant: ${{ steps.create-sp.outputs.sp_tenant }}
     steps:
-      - name: Checkout code
+      - name: Checkout Repository
         uses: actions/checkout@v4
 
-      - name: Set up Terraform
-        uses: hashicorp/setup-terraform@v3
-
-      - name: Azure Login (OIDC)
-        uses: azure/login@v1
+      - name: Login to Azure with Bootstrap Credentials
+        uses: azure/login@v2
         with:
-          client-id: ${{ env.ARM_CLIENT_ID }}
-          tenant-id: ${{ env.ARM_TENANT_ID }}
-          subscription-id: ${{ env.ARM_SUBSCRIPTION_ID }}
-          audience: api://AzureADTokenExchange
+          creds: ${{ secrets.BOOTSTRAP_AZURE_CREDENTIALS }}
 
-      - name: Debug Azure Login
+      - name: Create Service Principal
+        id: create-sp
         run: |
-          echo "Client ID: ${{ env.ARM_CLIENT_ID }}"
-          echo "Subscription ID: ${{ env.ARM_SUBSCRIPTION_ID }}"
-          echo "Tenant ID: ${{ env.ARM_TENANT_ID }}"
-          az account show
+          subscriptionId=$(az account show --query id -o tsv)
+          echo "Using subscription: $subscriptionId"
+          
+          sp=$(az ad sp create-for-rbac --name "myNewTerraformSP" --role "Contributor" --scopes "/subscriptions/$subscriptionId" --query "{appId:appId, password:password, tenant:tenant}" -o json)
+          echo "Service Principal Created:"
+          echo "$sp"
+          
+          sp_appid=$(echo $sp | jq -r .appId)
+          sp_password=$(echo $sp | jq -r .password)
+          sp_tenant=$(echo $sp | jq -r .tenant)
+          
+          echo "::set-output name=sp_appid::$sp_appid"
+          echo "::set-output name=sp_password::$sp_password"
+          echo "::set-output name=sp_tenant::$sp_tenant"
+
+  terraform_plan:
+    needs: create-sp
+    runs-on: ubuntu-latest
+    env:
+      ARM_CLIENT_ID: ${{ needs.create-sp.outputs.sp_appid }}
+      ARM_CLIENT_SECRET: ${{ needs.create-sp.outputs.sp_password }}
+      ARM_TENANT_ID: ${{ needs.create-sp.outputs.sp_tenant }}
+      ARM_SUBSCRIPTION_ID: ${{ secrets.ARM_SUBSCRIPTION_ID }}
+      TF_VAR_location: "eastus"
+      TF_VAR_oidc_client_id: ${{ secrets.OIDC_CLIENT_ID }}
+      TF_VAR_oidc_client_secret: ${{ secrets.OIDC_CLIENT_SECRET }}
+      TF_VAR_oidc_metadata_endpoint: ${{ secrets.OIDC_METADATA_ENDPOINT }}
+      TF_VAR_oidc_audience: ${{ secrets.OIDC_AUDIENCE }}
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v2
+        with:
+          terraform_version: "1.3.0"
 
       - name: Terraform Init
-        working-directory: ./terraform
         run: terraform init
 
       - name: Terraform Plan
-        working-directory: ./terraform
-        run: |
-          terraform plan -out=tfplan
-          echo "::group::Terraform Plan Output"
-          terraform show -no-color tfplan
-          echo "::endgroup::"
-        continue-on-error: false
+        run: terraform plan -out=tfplan
 
-      - name: Upload Terraform Plan
+      - name: Upload Terraform Plan Artifact
         uses: actions/upload-artifact@v4
         with:
           name: tfplan
-          path: ./terraform/tfplan
+          path: tfplan
 
-  apply:
+  terraform_apply:
+    needs: terraform_plan
     runs-on: ubuntu-latest
-    needs: terraform
+    environment:
+      name: production  # Create a 'production' environment in GitHub with manual approval.
+    env:
+      ARM_CLIENT_ID: ${{ needs.create-sp.outputs.sp_appid }}
+      ARM_CLIENT_SECRET: ${{ needs.create-sp.outputs.sp_password }}
+      ARM_TENANT_ID: ${{ needs.create-sp.outputs.sp_tenant }}
+      ARM_SUBSCRIPTION_ID: ${{ secrets.ARM_SUBSCRIPTION_ID }}
+      TF_VAR_location: "eastus"
+      TF_VAR_oidc_client_id: ${{ secrets.OIDC_CLIENT_ID }}
+      TF_VAR_oidc_client_secret: ${{ secrets.OIDC_CLIENT_SECRET }}
+      TF_VAR_oidc_metadata_endpoint: ${{ secrets.OIDC_METADATA_ENDPOINT }}
+      TF_VAR_oidc_audience: ${{ secrets.OIDC_AUDIENCE }}
     steps:
-      - name: Checkout code
+      - name: Checkout Repository
         uses: actions/checkout@v4
 
-      - name: Download Terraform Plan
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v2
+        with:
+          terraform_version: "1.3.0"
+
+      - name: Download Terraform Plan Artifact
         uses: actions/download-artifact@v4
         with:
           name: tfplan
-          path: ./terraform
-
-      - name: Set up Terraform
-        uses: hashicorp/setup-terraform@v3
-      
-      - name: Azure Login (OIDC)
-        uses: azure/login@v1
-        with:
-          client-id: ${{ env.ARM_CLIENT_ID }}
-          tenant-id: ${{ env.ARM_TENANT_ID }}
-          subscription-id: ${{ env.ARM_SUBSCRIPTION_ID }}
-          audience: api://AzureADTokenExchange  
-
-      - name: Terraform Init
-        working-directory: ./terraform
-        run: terraform init
 
       - name: Terraform Apply
-        working-directory: ./terraform
-        run: terraform apply tfplan
+        run: terraform apply -auto-approve tfplan
+
+  cleanup:
+    needs: terraform_apply
+    runs-on: ubuntu-latest
+    if: always()  # Runs regardless of previous job outcomes.
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Login to Azure with Bootstrap Credentials for Cleanup
+        uses: azure/login@v2
+        with:
+          creds: ${{ secrets.BOOTSTRAP_AZURE_CREDENTIALS }}
+
+      - name: Delete Service Principal
+        run: |
+          spAppId=${{ needs.create-sp.outputs.sp_appid }}
+          echo "Deleting service principal: $spAppId"
+          az ad sp delete --id $spAppId
