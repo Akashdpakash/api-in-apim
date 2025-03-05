@@ -25,12 +25,12 @@ resource "azurerm_api_management_api" "hello_api" {
 
 resource "azurerm_api_management_policy" "jwt_policy" {
   api_management_id = azurerm_api_management.apim.id
-  xml_content       = replace(<<XML
+  xml_content       = <<XML
 <policies>
   <inbound>
     <validate-jwt header-name="Authorization" failed-validation-httpcode="401" failed-validation-error-message="Unauthorized">
       <issuer-signing-keys>
-        <key>JWT_SECRET_PLACEHOLDER</key>
+        <key>${var.jwt_secret}</key>
       </issuer-signing-keys>
       <audiences>
         <audience>your-audience</audience>
@@ -52,7 +52,6 @@ resource "azurerm_api_management_policy" "jwt_policy" {
   </on-error>
 </policies>
 XML
-, "JWT_SECRET_PLACEHOLDER", var.jwt_secret)
 }
 
 output "apim_gateway_url" {
